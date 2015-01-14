@@ -11,13 +11,14 @@
 
 namespace Moust\Silex\Provider;
 
+use Pimple\Container;
 use Silex\Application;
-use Silex\ServiceProviderInterface;
+use Pimple\ServiceProviderInterface;
 use Moust\Silex\Cache\CacheFactory;
 
 class CacheServiceProvider implements ServiceProviderInterface
 {
-    public function register(Application $app)
+    public function register(Container $app)
     {
         $app['cache.default_options'] = array(
             'driver' => 'array'
@@ -36,9 +37,9 @@ class CacheServiceProvider implements ServiceProviderInterface
             );
         };
 
-        $app['cache.factory'] = $app->share(function ($app) {
+        $app['cache.factory'] = function ($app) {
             return new CacheFactory($app['cache.drivers'], $app['caches.options']);
-        });
+        };
 
         $app['caches.options.initializer'] = $app->protect(function () use ($app) {
             static $initialized = false;
@@ -64,10 +65,10 @@ class CacheServiceProvider implements ServiceProviderInterface
             $app['caches.options'] = $tmp;
         });
 
-        $app['caches'] = $app->share(function ($app) {
+        $app['caches'] = function ($app) {
             $app['caches.options.initializer']();
 
-            $caches = new \Pimple();
+            $caches = new Container();
             foreach ($app['caches.options'] as $name => $options) {
                 if ($app['caches.default'] === $name) {
                     // we use shortcuts here in case the default has been overridden
@@ -76,37 +77,37 @@ class CacheServiceProvider implements ServiceProviderInterface
                     $config = $app['caches.config'][$name];
                 }
 
-                $caches[$name] = $caches->share(function ($caches) use ($app, $config) {
+                $caches[$name] = function ($caches) use ($app, $config) {
                     return $app['cache.factory']->getCache($config['driver'], $config);
-                });
+                };
             }
 
             return $caches;
-        });
+        };
 
-        $app['caches.config'] = $app->share(function ($app) {
+        $app['caches.config'] = function ($app) {
             $app['caches.options.initializer']();
 
-            $configs = new \Pimple();
+            $configs = new Container();
             foreach ($app['caches.options'] as $name => $options) {
                 $configs[$name] = $options;
             }
 
             return $configs;
-        });
+        };
 
         // shortcuts for the "first" cache
-        $app['cache'] = $app->share(function ($app) {
+        $app['cache'] = function ($app) {
             $caches = $app['caches'];
 
             return $caches[$app['caches.default']];
-        });
+        };
 
-        $app['cache.config'] = $app->share(function ($app) {
+        $app['cache.config'] = function ($app) {
             $caches = $app['caches.config'];
 
             return $caches[$app['caches.default']];
-        });
+        };
     }
 
     public function boot(Application $app)
