@@ -35,7 +35,7 @@ class RedisCacheTest extends \PHPUnit_Framework_TestCase
     public function tearDown()
     {
         if ($this->_redis instanceof Redis) {
-            $this->_redis->flush();
+            $this->_redis->flushAll();
         }
     }
 
@@ -69,11 +69,11 @@ class RedisCacheTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($bar['foo'], 'bar');
 
         $return = $cache->delete('foo');
-        $this->assertTrue($return);
+        $this->assertEquals(1, $return);
 
         $foo = $cache->fetch('foo');
         $this->assertFalse($foo);
-        
+
         $bar = $cache->fetch('bar');
         $this->assertTrue(is_array($bar));
         $this->assertTrue(isset($bar['foo']));
